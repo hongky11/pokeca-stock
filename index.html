@@ -47,7 +47,13 @@ main { max-width: 680px; margin: 0 auto; padding: 12px 12px 48px; }
 .store .time { font-size: 11px; color: #8a8d91; }
 .store .actions { margin-top: 8px; display: flex; gap: 8px; }
 .store .actions a { font-size: 12px; font-weight: 600; color: #1877f2; text-decoration: none; }
-#map { height: 360px; border-radius: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06); z-index: 1; }
+#map { height: 380px; border-radius: 14px; margin: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06); z-index: 1; }
+.map-legend { display: flex; gap: 12px; font-size: 12px; color: #65676b; padding: 0 16px 8px; flex-wrap: wrap; }
+.map-legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: 0; }
+.pin { width: 22px; height: 22px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+.pin.blue { background: #1877f2; }
+.pin.purple { background: #8e24aa; }
+.pin.gray { background: #9e9e9e; }
 .ev { font-size: 13px; padding: 10px 0; border-bottom: 1px solid #f0f2f5; line-height: 1.6; }
 .ev:last-child { border-bottom: none; }
 .ev .t { color: #8a8d91; font-size: 12px; }
@@ -65,6 +71,12 @@ main { max-width: 680px; margin: 0 auto; padding: 12px 12px 48px; }
   <div class="links"><a href="https://t.me/pokeca_stock_bot" target="_blank" rel="noopener">🔔 텔레그램 알림 받기</a></div>
 </header>
 <main>
+  <div id="map"></div>
+  <div class="map-legend">
+    <span><span class="dot" style="background:#8e24aa"></span>2시간 이내 입고</span>
+    <span><span class="dot" style="background:#1877f2"></span>일반</span>
+    <span><span class="dot" style="background:#9e9e9e"></span>5시간 이상 경과</span>
+  </div>
   <section class="card notice">
     개인용 재고 조회 사이트입니다. 10분마다 편의점 재고를 수집합니다.<br>
     재고는 실제와 다를 수 있으니 매장에 직접 확인 후 방문하세요.
@@ -84,8 +96,6 @@ main { max-width: 680px; margin: 0 auto; padding: 12px 12px 48px; }
     </div>
     <div id="stock"></div>
   </section>
-
-  <div id="map"></div>
 
   <section class="card">
     <h2>최근 변동</h2>
@@ -202,8 +212,17 @@ async function loadStock() {
   renderStock();
 }
 
+function pinColor(s, restockSet) {
+  const now = Date.now() / 1000;
+  if (restockSet.has(s.name)) return "purple";       // 2시간 이내 입고
+  if (s.changed_at && (now - s.changed_at) > 5 * 3600) return "gray";  // 5시간 경과
+  return "blue";                                       // 일반
+}
+
 function renderStock() {
   let list = STORES.filter(s => (s.qty || 0) > 0);
+  // 지도는 필터 무시하고 재고 있는 전 매장 표시
+  const mapList = list.slice().sort((a, b) => (b.qty || 0) - (a.qty || 0));
   if (region !== "all") list = list.filter(s => (s.regions || []).includes(region));
   if (pickupOnly) list = list.filter(s => s.pickup);
   if (query) list = list.filter(s => (s.name || "").includes(query));
@@ -228,10 +247,24 @@ function renderStock() {
     : `<div class="empty">재고 있는 매장이 없습니다.</div>`;
 
   if (layer) layer.clearLayers();
+  // 2시간 이내 입고 매장 집합 (events 기준)
+  const twoH = Date.now() / 1000 - 2 * 3600;
+  const restockSet = new Set(
+    (EVENTS || []).filter(e => e.ts >= twoH && (e.new_qty || 0) > (e.old_qty || 0))
+      .map(e => e.store_name)
+  );
   const bounds = [];
-  for (const s of list) {
+  for (const s of mapList) {
     if (!s.lat || !s.lng) continue;
-    L.marker([s.lat, s.lng]).addTo(layer)
+    const c = pinColor(s, restockSet);
+    const icon = L.divIcon({
+      className: "",
+      html: `<div class="pin ${c}"></div>`,
+      iconSize: [22, 22],
+      iconAnchor: [11, 22],
+      popupAnchor: [0, -20]
+    });
+    L.marker([s.lat, s.lng], {icon}).addTo(layer)
       .bindPopup(`<b>${esc(s.name)}</b><br>${s.qty ?? 0}개${s.pickup ? " · 픽업가능" : ""}`);
     bounds.push([s.lat, s.lng]);
   }
@@ -261,8 +294,8 @@ function initMap() {
 async function refresh() {
   try {
     await loadStatus();
-    await loadStock();
     await loadEvents();
+    await loadStock();
   } catch (e) {
     $("status").textContent = "불러오기 실패";
   }
