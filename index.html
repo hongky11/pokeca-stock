@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>30주년 편의점 재고조회</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root { color-scheme: light dark; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; background: Canvas; color: CanvasText; }
+header { padding: 14px 16px 10px; border-bottom: 1px solid #ddd; position: sticky; top: 0; background: Canvas; z-index: 10; }
+header h1 { font-size: 18px; margin: 0 0 4px; }
+header .status { font-size: 12px; color: gray; margin-bottom: 8px; }
+header .links { display: flex; gap: 8px; }
+header .links a { font-size: 13px; padding: 6px 12px; border: 1px solid #ccc; border-radius: 16px; text-decoration: none; color: inherit; }
+main { max-width: 720px; margin: 0 auto; padding: 0 0 40px; }
+.card { border: 1px solid #ddd; border-radius: 12px; margin: 12px 16px; padding: 14px; }
+.card h2 { font-size: 15px; margin: 0 0 10px; }
+.card.notice { font-size: 13px; line-height: 1.7; color: gray; }
+.products { display: flex; gap: 10px; overflow-x: auto; }
+.product { min-width: 140px; border: 1px solid #ddd; border-radius: 10px; padding: 8px; cursor: pointer; text-align: center; }
+.product.sel { border-color: #1a73e8; box-shadow: 0 0 0 1px #1a73e8; }
+.product img { width: 100%; height: 100px; object-fit: contain; }
+.product .pname { font-size: 12px; margin-top: 6px; }
+.product .pprice { font-size: 12px; color: gray; }
+.product .plabel { font-size: 11px; color: #1a73e8; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.chip { font-size: 13px; padding: 6px 12px; border: 1px solid #ccc; border-radius: 16px; background: none; cursor: pointer; color: inherit; }
+.chip.on { background: #1a73e8; color: #fff; border-color: #1a73e8; }
+.toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 10px; }
+.tblwrap { overflow-x: auto; }
+table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.tbl th, table.tbl td { padding: 8px 6px; border-bottom: 1px solid #eee; text-align: left; vertical-align: top; }
+table.tbl th { color: gray; font-weight: 600; font-size: 12px; }
+table.tbl td.num { text-align: right; white-space: nowrap; }
+.badge { font-size: 11px; padding: 2px 7px; border-radius: 10px; border: 1px solid #ccc; white-space: nowrap; }
+.badge.ok { color: #1a73e8; border-color: #1a73e8; }
+.badge.no { color: gray; }
+#map { height: 380px; margin: 0 16px; border-radius: 12px; border: 1px solid #ddd; }
+.ev { font-size: 13px; padding: 8px 0; border-bottom: 1px solid #eee; }
+.ev .t { color: gray; font-size: 12px; }
+.ev .up { color: #d32f2f; font-weight: 700; }
+.ev .down { color: #1a73e8; font-weight: 700; }
+.sitefoot { font-size: 12px; color: gray; line-height: 1.7; padding: 0 16px; }
+.empty { padding: 30px 0; text-align: center; color: gray; font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>30주년 편의점 재고조회</h1>
+  <div class="status" id="status">불러오는 중…</div>
+  <div class="links">
+    <a href="https://t.me/pokeca_stock_bot" target="_blank" rel="noopener">🔔 텔레그램 알림 받기</a>
+  </div>
+</header>
+<main>
+  <section class="card notice">
+    개인용 재고 조회 사이트입니다.<br>
+    10분마다 편의점 재고를 수집합니다.<br>
+    재고는 실제와 다를 수 있으며 구매를 보장하지 않습니다.<br>
+    매장에 직접 확인 후 방문하세요.
+  </section>
+
+  <section class="card">
+    <h2>조회 중인 상품</h2>
+    <div class="products" id="products"></div>
+  </section>
+
+  <section class="card">
+    <h2 id="stockTitle">재고 있는 매장</h2>
+    <div class="chips" id="regions"></div>
+    <label class="toggle"><input type="checkbox" id="pickupOnly"> 픽업 가능만 보기</label>
+    <div class="tblwrap"><table class="tbl">
+      <thead><tr><th>매장</th><th style="text-align:right">구매가능</th><th>지역</th><th>변동</th></tr></thead>
+      <tbody id="stock"></tbody>
+    </table></div>
+  </section>
+
+  <div id="map"></div>
+
+  <section class="card">
+    <h2>최근 변동</h2>
+    <div id="events"></div>
+  </section>
+
+  <div class="sitefoot">
+    편의점 재고 정보를 모아 보여주는 개인 사이트입니다.<br>
+    재고는 실제와 다를 수 있으며 구매를 보장하지 않습니다.<br>
+    편의점 각 사·포켓몬과 무관하며, 이미지 권리는 각 사에 있습니다.
+  </div>
+</main>
+<script>
+let ST = null, STORES = [], EVENTS = [];
+let sel = null, region = "all", pickupOnly = false;
+let map = null, layer = null;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function ago(ts) {
+  const m = Math.floor((Date.now() / 1000 - ts) / 60);
+  if (m < 1) return "방금 전";
+  if (m < 60) return m + "분 전";
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + "시간 전";
+  return Math.floor(h / 24) + "일 전";
+}
+function ls(k, v) {
+  try {
+    if (v === undefined) return localStorage.getItem(k);
+    localStorage.setItem(k, v);
+  } catch (e) { return null; }
+}
+
+async function api(path) {
+  const r = await fetch("./data" + path.replace("/status","/status.json").replace("/events","/events.json"));
+  if (!r.ok) throw new Error("api failed");
+  return r.json();
+}
+
+async function loadStatus() {
+  ST = await api("/status");
+  const upd = ST.updated || {};
+  $("status").textContent = Object.entries(upd)
+    .map(([k, v]) => k + " " + ago(v)).join(" · ") || "데이터 없음";
+  if (!sel || !(ST.products || []).some(p => p.provider === sel.provider && p.id === sel.id)) {
+    const saved = ls("sel");
+    sel = null;
+    if (saved) {
+      try {
+        const s = JSON.parse(saved);
+        sel = (ST.products || []).find(p => p.provider === s.provider && p.id === s.id) || null;
+      } catch (e) {}
+    }
+    sel = sel || (ST.products || [])[0] || null;
+  }
+  renderProducts();
+  renderRegions();
+}
+
+function renderProducts() {
+  const el = $("products");
+  el.innerHTML = (ST.products || []).map(p => `
+    <div class="product ${sel && sel.provider === p.provider && sel.id === p.id ? "sel" : ""}"
+         data-p="${esc(p.provider)}" data-id="${esc(p.id)}">
+      ${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy">` : ""}
+      <div class="plabel">${esc(p.provider_label || "")}</div>
+      <div class="pname">${esc(p.name)}</div>
+      <div class="pprice">${p.price ? p.price.toLocaleString() + "원" : ""} · ${p.stores_in_stock ?? 0}곳</div>
+    </div>`).join("");
+  el.querySelectorAll(".product").forEach(d => d.onclick = () => {
+    sel = (ST.products || []).find(p => p.provider === d.dataset.p && p.id === d.dataset.id);
+    ls("sel", JSON.stringify({provider: sel.provider, id: sel.id}));
+    renderProducts(); loadStock();
+  });
+}
+
+function renderRegions() {
+  const saved = ls("region");
+  const regs = ["all", ...(ST.regions || []).map(r => r.name)];
+  if (!regs.includes(saved)) region = "all"; else region = saved || "all";
+  const po = ls("pickupOnly");
+  pickupOnly = po === "1";
+  $("pickupOnly").checked = pickupOnly;
+  $("regions").innerHTML = regs.map(r =>
+    `<button class="chip ${r === region ? "on" : ""}" data-r="${esc(r)}">${r === "all" ? "전국" : esc(r)}</button>`
+  ).join("");
+  document.querySelectorAll("#regions .chip").forEach(c => c.onclick = () => {
+    region = c.dataset.r; ls("region", region); renderRegions(); renderStock();
+  });
+}
+
+async function loadStock() {
+  if (!sel) { $("stock").innerHTML = ""; if (layer) layer.clearLayers(); return; }
+  STORES = await api(`/stock?provider=${encodeURIComponent(sel.provider)}&product_id=${encodeURIComponent(sel.id)}`);
+  const pl = (ST.providers || []).find(p => p.key === sel.provider);
+  $("stockTitle").textContent = `재고 있는 매장 (${pl ? pl.label : ""} · ${STORES.filter(s => (s.qty || 0) > 0).length}곳)`;
+  renderStock();
+}
+
+function renderStock() {
+  let list = STORES.filter(s => (s.qty || 0) > 0);
+  if (region !== "all") list = list.filter(s => (s.regions || []).includes(region));
+  if (pickupOnly) list = list.filter(s => s.pickup);
+  list.sort((a, b) => (b.qty || 0) - (a.qty || 0));
+
+  $("stock").innerHTML = list.length ? list.map(s => `
+    <tr>
+      <td><b>${esc(s.name)}</b><br><span style="color:gray;font-size:12px">${esc(s.addr || "")}</span>
+        ${s.app && s.app.android ? `<br><a href="${esc(s.app.android)}" style="font-size:12px">앱에서 보기</a>` : ""}</td>
+      <td class="num"><b>${s.qty ?? 0}개</b><br>
+        <span class="badge ${s.pickup ? "ok" : "no"}">${s.pickup ? "픽업가능" : "⛔픽업불가"}</span></td>
+      <td style="font-size:12px">${esc((s.regions || []).join(", "))}</td>
+      <td style="font-size:12px;white-space:nowrap">${s.changed_at ? ago(s.changed_at) : "-"}</td>
+    </tr>`).join("")
+    : `<tr><td colspan="4"><div class="empty">재고 있는 매장이 없습니다.</div></td></tr>`;
+
+  if (layer) layer.clearLayers();
+  const bounds = [];
+  for (const s of list) {
+    if (!s.lat || !s.lng) continue;
+    L.marker([s.lat, s.lng]).addTo(layer)
+      .bindPopup(`<b>${esc(s.name)}</b><br>${s.qty ?? 0}개${s.pickup ? " · 픽업가능" : ""}`);
+    bounds.push([s.lat, s.lng]);
+  }
+  if (bounds.length && map) map.fitBounds(bounds, {padding: [30, 30]});
+}
+
+async function loadEvents() {
+  EVENTS = await api("/events?limit=80");
+  $("events").innerHTML = EVENTS.length ? EVENTS.map(e => {
+    const up = (e.new_qty || 0) > (e.old_qty || 0);
+    return `<div class="ev">
+      <span class="t">${ago(e.ts)}</span> ·
+      ${esc(e.store_name || "")} ·
+      ${esc(e.product_name || "")}<br>
+      ${e.old_qty ?? "-"}개 → <span class="${up ? "up" : "down"}">${e.new_qty ?? "-"}개</span>
+    </div>`;
+  }).join("") : `<div class="empty">변동 내역이 없습니다.</div>`;
+}
+
+function initMap() {
+  map = L.map("map").setView([36.2, 127.8], 7);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom: 19}).addTo(map);
+  layer = L.layerGroup().addTo(map);
+}
+
+async function refresh() {
+  try {
+    await loadStatus();
+    await loadStock();
+    await loadEvents();
+  } catch (e) {
+    $("status").textContent = "불러오기 실패";
+  }
+}
+
+$("pickupOnly").onchange = e => {
+  pickupOnly = e.target.checked;
+  ls("pickupOnly", pickupOnly ? "1" : "0");
+  renderStock();
+};
+
+initMap();
+refresh();
+setInterval(refresh, 15000);
+</script>
+</body>
+</html>
