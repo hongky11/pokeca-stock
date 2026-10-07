@@ -7,60 +7,67 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-:root { color-scheme: light dark; }
-* { box-sizing: border-box; }
-body { margin: 0; font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; background: Canvas; color: CanvasText; }
-header { padding: 14px 16px 10px; border-bottom: 1px solid #ddd; position: sticky; top: 0; background: Canvas; z-index: 10; }
-header h1 { font-size: 18px; margin: 0 0 4px; }
-header .status { font-size: 12px; color: gray; margin-bottom: 8px; }
-header .links { display: flex; gap: 8px; }
-header .links a { font-size: 13px; padding: 6px 12px; border: 1px solid #ccc; border-radius: 16px; text-decoration: none; color: inherit; }
-main { max-width: 720px; margin: 0 auto; padding: 0 0 40px; }
-.card { border: 1px solid #ddd; border-radius: 12px; margin: 12px 16px; padding: 14px; }
-.card h2 { font-size: 15px; margin: 0 0 10px; }
-.card.notice { font-size: 13px; line-height: 1.7; color: gray; }
-.products { display: flex; gap: 10px; overflow-x: auto; }
-.product { min-width: 140px; border: 1px solid #ddd; border-radius: 10px; padding: 8px; cursor: pointer; text-align: center; }
-.product.sel { border-color: #1a73e8; box-shadow: 0 0 0 1px #1a73e8; }
-.product img { width: 100%; height: 100px; object-fit: contain; }
-.product .pname { font-size: 12px; margin-top: 6px; }
-.product .pprice { font-size: 12px; color: gray; }
-.product .plabel { font-size: 11px; color: #1a73e8; }
-.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-.chip { font-size: 13px; padding: 6px 12px; border: 1px solid #ccc; border-radius: 16px; background: none; cursor: pointer; color: inherit; }
-.chip.on { background: #1a73e8; color: #fff; border-color: #1a73e8; }
-.toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-bottom: 10px; }
-.tblwrap { overflow-x: auto; }
-table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
-table.tbl th, table.tbl td { padding: 8px 6px; border-bottom: 1px solid #eee; text-align: left; vertical-align: top; }
-table.tbl th { color: gray; font-weight: 600; font-size: 12px; }
-table.tbl td.num { text-align: right; white-space: nowrap; }
-.badge { font-size: 11px; padding: 2px 7px; border-radius: 10px; border: 1px solid #ccc; white-space: nowrap; }
-.badge.ok { color: #1a73e8; border-color: #1a73e8; }
-.badge.no { color: gray; }
-#map { height: 380px; margin: 0 16px; border-radius: 12px; border: 1px solid #ddd; }
-.ev { font-size: 13px; padding: 8px 0; border-bottom: 1px solid #eee; }
-.ev .t { color: gray; font-size: 12px; }
-.ev .up { color: #d32f2f; font-weight: 700; }
-.ev .down { color: #1a73e8; font-weight: 700; }
-.sitefoot { font-size: 12px; color: gray; line-height: 1.7; padding: 0 16px; }
-.empty { padding: 30px 0; text-align: center; color: gray; font-size: 13px; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; background: #f4f5f7; color: #1c1e21; -webkit-text-size-adjust: 100%; }
+header { background: #fff; padding: 16px 20px 12px; border-bottom: 1px solid #e4e6eb; position: sticky; top: 0; z-index: 20; }
+header h1 { font-size: 19px; font-weight: 800; letter-spacing: -0.3px; }
+header .status { font-size: 12px; color: #8a8d91; margin-top: 4px; }
+header .links { margin-top: 10px; }
+header .links a { display: inline-block; font-size: 13px; font-weight: 600; padding: 7px 14px; border-radius: 20px; background: #e7f3ff; color: #1877f2; text-decoration: none; }
+main { max-width: 680px; margin: 0 auto; padding: 12px 12px 48px; }
+.card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.card h2 { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+.card h2 .count { color: #1877f2; }
+.notice { font-size: 13px; line-height: 1.75; color: #65676b; }
+.products { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+.product { flex: 0 0 150px; border: 2px solid #e4e6eb; border-radius: 12px; padding: 10px; cursor: pointer; text-align: center; background: #fff; transition: border-color .15s; }
+.product.sel { border-color: #1877f2; }
+.product img { width: 100%; height: 96px; object-fit: contain; }
+.product .plabel { font-size: 11px; font-weight: 700; color: #1877f2; margin-top: 6px; }
+.product .pname { font-size: 12px; font-weight: 600; margin-top: 2px; line-height: 1.4; min-height: 34px; }
+.product .pprice { font-size: 12px; color: #65676b; margin-top: 4px; }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 4px; }
+.chip { flex: 0 0 auto; font-size: 13px; font-weight: 600; padding: 8px 14px; border: 1px solid #ccd0d5; border-radius: 20px; background: #fff; cursor: pointer; color: #1c1e21; }
+.chip.on { background: #1877f2; color: #fff; border-color: #1877f2; }
+.toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+.search { flex: 1; min-width: 140px; display: flex; align-items: center; background: #f0f2f5; border-radius: 20px; padding: 8px 14px; }
+.search input { flex: 1; border: none; background: none; font-size: 13px; outline: none; color: inherit; }
+.toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #65676b; white-space: nowrap; }
+.store { border: 1px solid #e4e6eb; border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
+.store .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.store .name { font-size: 14px; font-weight: 700; }
+.store .addr { font-size: 12px; color: #65676b; margin-top: 2px; }
+.store .qty { font-size: 20px; font-weight: 800; color: #1877f2; white-space: nowrap; }
+.store .qty small { font-size: 12px; font-weight: 600; color: #65676b; }
+.store .meta { display: flex; gap: 6px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 12px; }
+.badge.ok { background: #e7f3ff; color: #1877f2; }
+.badge.no { background: #f0f2f5; color: #8a8d91; }
+.badge.region { background: #f0f2f5; color: #65676b; }
+.store .time { font-size: 11px; color: #8a8d91; }
+.store .actions { margin-top: 8px; display: flex; gap: 8px; }
+.store .actions a { font-size: 12px; font-weight: 600; color: #1877f2; text-decoration: none; }
+#map { height: 360px; border-radius: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.06); z-index: 1; }
+.ev { font-size: 13px; padding: 10px 0; border-bottom: 1px solid #f0f2f5; line-height: 1.6; }
+.ev:last-child { border-bottom: none; }
+.ev .t { color: #8a8d91; font-size: 12px; }
+.ev .up { color: #e41e3f; font-weight: 800; }
+.ev .down { color: #1877f2; font-weight: 800; }
+.ev .new { display: inline-block; font-size: 10px; font-weight: 800; background: #e41e3f; color: #fff; border-radius: 8px; padding: 1px 7px; margin-left: 4px; vertical-align: 1px; }
+.sitefoot { font-size: 12px; color: #8a8d91; line-height: 1.8; padding: 4px 8px; }
+.empty { padding: 36px 0; text-align: center; color: #8a8d91; font-size: 13px; }
 </style>
 </head>
 <body>
 <header>
   <h1>30주년 편의점 재고조회</h1>
   <div class="status" id="status">불러오는 중…</div>
-  <div class="links">
-    <a href="https://t.me/pokeca_stock_bot" target="_blank" rel="noopener">🔔 텔레그램 알림 받기</a>
-  </div>
+  <div class="links"><a href="https://t.me/pokeca_stock_bot" target="_blank" rel="noopener">🔔 텔레그램 알림 받기</a></div>
 </header>
 <main>
   <section class="card notice">
-    개인용 재고 조회 사이트입니다.<br>
-    10분마다 편의점 재고를 수집합니다.<br>
-    재고는 실제와 다를 수 있으며 구매를 보장하지 않습니다.<br>
-    매장에 직접 확인 후 방문하세요.
+    개인용 재고 조회 사이트입니다. 10분마다 편의점 재고를 수집합니다.<br>
+    재고는 실제와 다를 수 있으니 매장에 직접 확인 후 방문하세요.
   </section>
 
   <section class="card">
@@ -71,11 +78,11 @@ table.tbl td.num { text-align: right; white-space: nowrap; }
   <section class="card">
     <h2 id="stockTitle">재고 있는 매장</h2>
     <div class="chips" id="regions"></div>
-    <label class="toggle"><input type="checkbox" id="pickupOnly"> 픽업 가능만 보기</label>
-    <div class="tblwrap"><table class="tbl">
-      <thead><tr><th>매장</th><th style="text-align:right">구매가능</th><th>지역</th><th>변동</th></tr></thead>
-      <tbody id="stock"></tbody>
-    </table></div>
+    <div class="toolbar">
+      <div class="search"><input id="q" type="search" placeholder="매장명 검색" autocomplete="off"></div>
+      <label class="toggle"><input type="checkbox" id="pickupOnly"> 픽업 가능만</label>
+    </div>
+    <div id="stock"></div>
   </section>
 
   <div id="map"></div>
@@ -93,7 +100,7 @@ table.tbl td.num { text-align: right; white-space: nowrap; }
 </main>
 <script>
 let ST = null, STORES = [], EVENTS = [];
-let sel = null, region = "all", pickupOnly = false;
+let sel = null, region = "all", pickupOnly = false, query = "";
 let map = null, layer = null;
 
 const $ = id => document.getElementById(id);
@@ -113,6 +120,14 @@ function ls(k, v) {
   } catch (e) { return null; }
 }
 
+// 지역 순서: 전국, 서울, 경기, 나머지
+function orderedRegions() {
+  const names = (ST.regions || []).map(r => r.name);
+  const rest = names.filter(n => n !== "서울" && n !== "경기");
+  return ["all", "서울", "경기", ...rest];
+}
+const regionLabel = r => r === "all" ? "전국" : r;
+
 async function api(path) {
   let p;
   if (path === "/status") p = "/status.json";
@@ -129,8 +144,7 @@ async function api(path) {
 async function loadStatus() {
   ST = await api("/status");
   const upd = ST.updated || {};
-  $("status").textContent = Object.entries(upd)
-    .map(([k, v]) => k + " " + ago(v)).join(" · ") || "데이터 없음";
+  $("status").textContent = Object.entries(upd).map(([k, v]) => k + " " + ago(v)).join(" · ") || "데이터 없음";
   if (!sel || !(ST.products || []).some(p => p.provider === sel.provider && p.id === sel.id)) {
     const saved = ls("sel");
     sel = null;
@@ -164,14 +178,15 @@ function renderProducts() {
 }
 
 function renderRegions() {
+  const regs = orderedRegions();
   const saved = ls("region");
-  const regs = ["all", ...(ST.regions || []).map(r => r.name)];
-  if (!regs.includes(saved)) region = "all"; else region = saved || "all";
-  const po = ls("pickupOnly");
-  pickupOnly = po === "1";
+  region = regs.includes(saved) ? saved : "all";
+  pickupOnly = ls("pickupOnly") === "1";
+  query = ls("q") || "";
   $("pickupOnly").checked = pickupOnly;
+  $("q").value = query;
   $("regions").innerHTML = regs.map(r =>
-    `<button class="chip ${r === region ? "on" : ""}" data-r="${esc(r)}">${r === "all" ? "전국" : esc(r)}</button>`
+    `<button class="chip ${r === region ? "on" : ""}" data-r="${esc(r)}">${esc(regionLabel(r))}</button>`
   ).join("");
   document.querySelectorAll("#regions .chip").forEach(c => c.onclick = () => {
     region = c.dataset.r; ls("region", region); renderRegions(); renderStock();
@@ -182,7 +197,8 @@ async function loadStock() {
   if (!sel) { $("stock").innerHTML = ""; if (layer) layer.clearLayers(); return; }
   STORES = await api(`/stock?provider=${encodeURIComponent(sel.provider)}&product_id=${encodeURIComponent(sel.id)}`);
   const pl = (ST.providers || []).find(p => p.key === sel.provider);
-  $("stockTitle").textContent = `재고 있는 매장 (${pl ? pl.label : ""} · ${STORES.filter(s => (s.qty || 0) > 0).length}곳)`;
+  const n = STORES.filter(s => (s.qty || 0) > 0).length;
+  $("stockTitle").innerHTML = `재고 있는 매장 <span class="count">${pl ? esc(pl.label) : ""} ${n}곳</span>`;
   renderStock();
 }
 
@@ -190,18 +206,26 @@ function renderStock() {
   let list = STORES.filter(s => (s.qty || 0) > 0);
   if (region !== "all") list = list.filter(s => (s.regions || []).includes(region));
   if (pickupOnly) list = list.filter(s => s.pickup);
+  if (query) list = list.filter(s => (s.name || "").includes(query));
   list.sort((a, b) => (b.qty || 0) - (a.qty || 0));
 
   $("stock").innerHTML = list.length ? list.map(s => `
-    <tr>
-      <td><b>${esc(s.name)}</b><br><span style="color:gray;font-size:12px">${esc(s.addr || "")}</span>
-        ${s.app && s.app.android ? `<br><a href="${esc(s.app.android)}" style="font-size:12px">앱에서 보기</a>` : ""}</td>
-      <td class="num"><b>${s.qty ?? 0}개</b><br>
-        <span class="badge ${s.pickup ? "ok" : "no"}">${s.pickup ? "픽업가능" : "⛔픽업불가"}</span></td>
-      <td style="font-size:12px">${esc((s.regions || []).join(", "))}</td>
-      <td style="font-size:12px;white-space:nowrap">${s.changed_at ? ago(s.changed_at) : "-"}</td>
-    </tr>`).join("")
-    : `<tr><td colspan="4"><div class="empty">재고 있는 매장이 없습니다.</div></td></tr>`;
+    <div class="store">
+      <div class="top">
+        <div><div class="name">${esc(s.name)}</div><div class="addr">${esc(s.addr || "")}</div></div>
+        <div class="qty">${s.qty ?? 0}<small>개</small></div>
+      </div>
+      <div class="meta">
+        <span class="badge ${s.pickup ? "ok" : "no"}">${s.pickup ? "픽업가능" : "픽업불가"}</span>
+        ${(s.regions || []).map(r => `<span class="badge region">${esc(r)}</span>`).join("")}
+        <span class="time">${s.changed_at ? ago(s.changed_at) + " 변동" : ""}</span>
+      </div>
+      <div class="actions">
+        <a href="https://map.naver.com/v5/search/${encodeURIComponent(s.name)}" target="_blank" rel="noopener">네이버지도</a>
+        ${s.app && s.app.android ? `<a href="${esc(s.app.android)}">앱에서 보기</a>` : ""}
+      </div>
+    </div>`).join("")
+    : `<div class="empty">재고 있는 매장이 없습니다.</div>`;
 
   if (layer) layer.clearLayers();
   const bounds = [];
@@ -218,10 +242,11 @@ async function loadEvents() {
   EVENTS = await api("/events?limit=80");
   $("events").innerHTML = EVENTS.length ? EVENTS.map(e => {
     const up = (e.new_qty || 0) > (e.old_qty || 0);
+    const isNew = (e.old_qty || 0) === 0 && (e.new_qty || 0) > 0;
     return `<div class="ev">
-      <span class="t">${ago(e.ts)}</span> ·
-      ${esc(e.store_name || "")} ·
-      ${esc(e.product_name || "")}<br>
+      <span class="t">${ago(e.ts)}</span> · ${esc(e.store_name || "")}
+      ${isNew ? '<span class="new">신규입고</span>' : ""}<br>
+      ${esc(e.product_name || "")} ·
       ${e.old_qty ?? "-"}개 → <span class="${up ? "up" : "down"}">${e.new_qty ?? "-"}개</span>
     </div>`;
   }).join("") : `<div class="empty">변동 내역이 없습니다.</div>`;
@@ -248,6 +273,15 @@ $("pickupOnly").onchange = e => {
   ls("pickupOnly", pickupOnly ? "1" : "0");
   renderStock();
 };
+let qTimer = null;
+$("q").addEventListener("input", e => {
+  clearTimeout(qTimer);
+  qTimer = setTimeout(() => {
+    query = e.target.value.trim();
+    ls("q", query);
+    renderStock();
+  }, 200);
+});
 
 initMap();
 refresh();
