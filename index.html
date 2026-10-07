@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>재고조회</title>
+<title>업무 진행 상황</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -174,7 +174,6 @@ function renderProducts() {
   el.innerHTML = (ST.products || []).map(p => `
     <div class="product ${sel && sel.provider === p.provider && sel.id === p.id ? "sel" : ""}"
          data-p="${esc(p.provider)}" data-id="${esc(p.id)}">
-      ${p.image ? `<img src="${esc(p.image)}" alt="" loading="lazy">` : ""}
       <div class="plabel">${esc(p.provider_label || "")}</div>
       <div class="pname">${esc(p.name)}</div>
       <div class="pprice">${p.price ? p.price.toLocaleString() + "원" : ""} · ${p.stores_in_stock ?? 0}곳</div>
