@@ -114,7 +114,14 @@ function ls(k, v) {
 }
 
 async function api(path) {
-  const r = await fetch("./data" + path.replace("/status","/status.json").replace("/events","/events.json"));
+  let p;
+  if (path === "/status") p = "/status.json";
+  else if (path.startsWith("/events")) p = "/events.json";
+  else if (path.startsWith("/stock?")) {
+    const q = new URLSearchParams(path.slice(7));
+    p = "/stock-" + q.get("provider") + "-" + q.get("product_id") + ".json";
+  } else throw new Error("unknown path");
+  const r = await fetch("./data" + p);
   if (!r.ok) throw new Error("api failed");
   return r.json();
 }
