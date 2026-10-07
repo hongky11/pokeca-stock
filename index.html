@@ -212,11 +212,23 @@ async function loadStock() {
   renderStock();
 }
 
-function pinColor(s, restockSet) {
+function pinColor(s) {
   const now = Date.now() / 1000;
-  if (restockSet.has(s.name)) return "purple";       // 2시간 이내 입고
-  if (s.changed_at && (now - s.changed_at) > 5 * 3600) return "gray";  // 5시간 경과
-  return "blue";                                       // 일반
+  if (s.restocked_at && (now - s.restocked_at) <= 2 * 3600) return "purple";  // 2시간 이내 입고
+  if (s.changed_at && (now - s.changed_at) > 5 * 3600) return "gray";        // 5시간 경과
+  return "blue";                                                             // 일반
+}
+
+function restockText(ts) {
+  if (!ts) return "";
+  const now = Date.now() / 1000;
+  const h = Math.floor((now - ts) / 3600);
+  const d = new Date(ts * 1000);
+  const md = (d.getMonth() + 1) + "/" + d.getDate() + " " +
+    String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  if (h < 1) return "입고 " + md + " (1시간 이내)";
+  if (h < 24) return "입고 " + md + " (" + h + "시간 경과)";
+  return "입고 " + md + " (" + Math.floor(h / 24) + "일 경과)";
 }
 
 function renderStock() {
@@ -238,6 +250,7 @@ function renderStock() {
         <span class="badge ${s.pickup ? "ok" : "no"}">${s.pickup ? "픽업가능" : "픽업불가"}</span>
         ${(s.regions || []).map(r => `<span class="badge region">${esc(r)}</span>`).join("")}
         <span class="time">${s.changed_at ? ago(s.changed_at) + " 변동" : ""}</span>
+        ${s.restocked_at ? `<span class="time" style="color:#8e24aa;font-weight:700">${esc(restockText(s.restocked_at))}</span>` : ""}
       </div>
       <div class="actions">
         <a href="https://map.naver.com/v5/search/${encodeURIComponent(s.name)}" target="_blank" rel="noopener">네이버지도</a>
@@ -247,16 +260,10 @@ function renderStock() {
     : `<div class="empty">재고 있는 매장이 없습니다.</div>`;
 
   if (layer) layer.clearLayers();
-  // 2시간 이내 입고 매장 집합 (events 기준)
-  const twoH = Date.now() / 1000 - 2 * 3600;
-  const restockSet = new Set(
-    (EVENTS || []).filter(e => e.ts >= twoH && (e.new_qty || 0) > (e.old_qty || 0))
-      .map(e => e.store_name)
-  );
   const bounds = [];
   for (const s of mapList) {
     if (!s.lat || !s.lng) continue;
-    const c = pinColor(s, restockSet);
+    const c = pinColor(s);
     const icon = L.divIcon({
       className: "",
       html: `<div class="pin ${c}"></div>`,
