@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>30주년 편의점 재고조회</title>
+<title>재고조회</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -66,7 +66,6 @@ main { max-width: 680px; margin: 0 auto; padding: 12px 12px 48px; }
 </head>
 <body>
 <header>
-  <h1>30주년 편의점 재고조회</h1>
   <div class="status" id="status">불러오는 중…</div>
   <div class="links"><a href="https://t.me/pokeca_stock_bot" target="_blank" rel="noopener">🔔 텔레그램 알림 받기</a></div>
 </header>
@@ -247,6 +246,7 @@ function renderStock() {
         <div class="qty">${s.qty ?? 0}<small>개</small></div>
       </div>
       <div class="meta">
+        ${s.brand ? `<span class="badge region" style="font-weight:800">${esc(s.brand)}</span>` : ""}
         <span class="badge ${s.pickup ? "ok" : "no"}">${s.pickup ? "픽업가능" : "픽업불가"}</span>
         ${(s.regions || []).map(r => `<span class="badge region">${esc(r)}</span>`).join("")}
         <span class="time">${s.changed_at ? ago(s.changed_at) + " 변동" : ""}</span>
@@ -272,7 +272,7 @@ function renderStock() {
       popupAnchor: [0, -20]
     });
     L.marker([s.lat, s.lng], {icon}).addTo(layer)
-      .bindPopup(`<b>${esc(s.name)}</b><br>${s.qty ?? 0}개${s.pickup ? " · 픽업가능" : ""}`);
+      .bindPopup(`<b>[${esc(s.brand || "")}] ${esc(s.name)}</b><br>${s.qty ?? 0}개${s.pickup ? " · 픽업가능" : ""}`);
     bounds.push([s.lat, s.lng]);
   }
   if (bounds.length && map) map.fitBounds(bounds, {padding: [30, 30]});
