@@ -110,7 +110,7 @@ main { max-width: 680px; margin: 0 auto; padding: 12px 12px 48px; }
 <script>
 let ST = null, STORES = [], EVENTS = [];
 let sel = null, region = "all", pickupOnly = false, query = "";
-let map = null, layer = null;
+let map = null, layer = null, userMovedMap = false;
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -181,6 +181,7 @@ function renderProducts() {
   el.querySelectorAll(".product").forEach(d => d.onclick = () => {
     sel = (ST.products || []).find(p => p.provider === d.dataset.p && p.id === d.dataset.id);
     ls("sel", JSON.stringify({provider: sel.provider, id: sel.id}));
+    userMovedMap = false;
     renderProducts(); loadStock();
   });
 }
@@ -274,7 +275,7 @@ function renderStock() {
       .bindPopup(`<b>[${esc(s.brand || "")}] ${esc(s.name)}</b><br>${s.qty ?? 0}개${s.pickup ? " · 픽업가능" : ""}`);
     bounds.push([s.lat, s.lng]);
   }
-  if (bounds.length && map) map.fitBounds(bounds, {padding: [30, 30]});
+  if (bounds.length && map && !userMovedMap) map.fitBounds(bounds, {padding: [30, 30]});
 }
 
 async function loadEvents() {
@@ -295,6 +296,7 @@ function initMap() {
   map = L.map("map").setView([36.2, 127.8], 7);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom: 19}).addTo(map);
   layer = L.layerGroup().addTo(map);
+  map.on("dragstart zoomstart", () => { userMovedMap = true; });
 }
 
 async function refresh() {
