@@ -67,7 +67,6 @@ main { max-width: 680px; margin: 0 auto; padding: 12px 12px 48px; }
 <body>
 <header>
   <div class="status" id="status">불러오는 중…</div>
-  <div class="links"><a href="https://t.me/pokeca_stock_bot" target="_blank" rel="noopener">🔔 텔레그램 알림 받기</a></div>
 </header>
 <main>
   <div id="map"></div>
@@ -122,6 +121,8 @@ function ago(ts) {
   if (h < 24) return h + "시간 전";
   return Math.floor(h / 24) + "일 전";
 }
+// 30분 넘게 수집이 없으면 중단된 것으로 본다
+const isStale = ts => (Date.now() / 1000 - (ts || 0)) > 30 * 60;
 function ls(k, v) {
   try {
     if (v === undefined) return localStorage.getItem(k);
@@ -152,8 +153,15 @@ async function api(path) {
 
 async function loadStatus() {
   ST = await api("/status");
-  const upd = ST.updated || {};
-  $("status").textContent = Object.entries(upd).map(([k, v]) => k + " " + ago(v)).join(" · ") || "데이터 없음";
+  // 브랜드별 마지막 수집 시각은 상품의 last_scanned 기준 (status.updated는 갱신되지 않을 수 있음)
+  const last = {};
+  for (const p of ST.products || []) {
+    const k = p.provider_label || p.provider;
+    last[k] = Math.max(last[k] || 0, p.last_scanned || 0);
+  }
+  $("status").innerHTML = Object.entries(last).map(([k, v]) =>
+    isStale(v) ? `<span style="opacity:.55">${esc(k)} ${ago(v)} (수집 중단)</span>` : `${esc(k)} ${ago(v)}`
+  ).join(" · ") || "데이터 없음";
   if (!sel || !(ST.products || []).some(p => p.provider === sel.provider && p.id === sel.id)) {
     const saved = ls("sel");
     sel = null;
@@ -163,7 +171,9 @@ async function loadStatus() {
         sel = (ST.products || []).find(p => p.provider === s.provider && p.id === s.id) || null;
       } catch (e) {}
     }
-    sel = sel || (ST.products || [])[0] || null;
+    // 저장된 선택이 없으면 최근 수집된 상품 중 재고가 가장 많은 것
+    sel = sel || (ST.products || []).slice().sort((a, b) =>
+      (isStale(a.last_scanned) - isStale(b.last_scanned)) || ((b.stores_in_stock || 0) - (a.stores_in_stock || 0)))[0] || null;
   }
   renderProducts();
   renderRegions();
@@ -173,10 +183,12 @@ function renderProducts() {
   const el = $("products");
   el.innerHTML = (ST.products || []).map(p => `
     <div class="product ${sel && sel.provider === p.provider && sel.id === p.id ? "sel" : ""}"
+         style="${isStale(p.last_scanned) ? "opacity:.5" : ""}"
          data-p="${esc(p.provider)}" data-id="${esc(p.id)}">
       <div class="plabel">${esc(p.provider_label || "")}</div>
       <div class="pname">${esc(p.name)}</div>
       <div class="pprice">${p.price ? p.price.toLocaleString() + "원" : ""} · ${p.stores_in_stock ?? 0}곳</div>
+      ${isStale(p.last_scanned) ? `<div class="pprice" style="color:#e41e3f">수집 중단 (${ago(p.last_scanned)} 데이터)</div>` : ""}
     </div>`).join("");
   el.querySelectorAll(".product").forEach(d => d.onclick = () => {
     sel = (ST.products || []).find(p => p.provider === d.dataset.p && p.id === d.dataset.id);
